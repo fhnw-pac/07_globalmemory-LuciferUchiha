@@ -47,7 +47,8 @@ inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort =
 // GPU kernel which access an vector with a stride pattern
 __global__ void strided_kernel(int* vec, int size, int stride)
 {
-	vec[threadIdx.x * stride % size] += 1;
+	unsigned int globalIdx = blockIdx.x * blockDim.x + threadIdx.x;
+	vec[globalIdx * stride % size] += 1;
 }
 
 
@@ -79,7 +80,8 @@ void gpu_stride_loop(int* device_vec, int size)
 		strided_kernel << < size / blockSize, blockSize >> > (device_vec, size, stride);
 		gpuErrCheck(cudaEventRecord(stopEvent, 0));
 		gpuErrCheck(cudaEventSynchronize(stopEvent));
-		cout << "GPU warmup kernel: " << processedMB / ms << "GB/s bandwidth" << endl;
+		gpuErrCheck(cudaEventElapsedTime(&ms, startEvent, stopEvent));
+		cout << "GPU with stride=" << stride << ": " << processedMB / ms << "GB/s bandwidth" << endl;
 	}
 }
 
@@ -99,7 +101,7 @@ void gpu_stride_loop(int* device_vec, int size)
 
 			auto stop = chrono::high_resolution_clock::now();
 			auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
-			cout << "CPU stride size " << stride << ": " << processedMB / duration.count() << "GB/s bandwidth" << endl;
+			cout << "CPU with stride=" << stride << ": " << processedMB / duration.count() << "GB/s bandwidth" << endl;
 		}
 	}
 
