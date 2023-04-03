@@ -48,7 +48,8 @@ inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort =
 __global__ void strided_kernel(int* vec, int size, int stride)
 {
 	unsigned int globalIdx = blockIdx.x * blockDim.x + threadIdx.x;
-	vec[globalIdx * stride % size] += 1;
+	unsigned int stridedIdx = globalIdx * stride % size;
+	vec[stridedIdx] += 1;
 }
 
 
